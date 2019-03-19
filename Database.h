@@ -5,63 +5,44 @@
 #include <string>
 #include <vector>
 #include <string.h>
+#include <boost/noncopyable.hpp>
 #include <PosixSharedMemory.h>
 
 struct TableMeta
 {
-    TableMeta(const char * n, uint64_t s)
-        : size(s)
+    enum class : uint32_t
+    {
+        MAX_NAME_SIZE = 64,
+        MAX_PATH_SIZE = 4096,
+    };
+
+    TableMeta(const char * n, const char * p, uint64_t cap)
+        : capacity(cap)
     {
         memset(name, 0, sizeof(name));
-        strncpy(name, n, 31);
+        memset(path, 0, sizeof(path));
+        strncpy(name, n, MAX_NAME_SIZE-1);
+        strncpy(path, p, MAX_PATH_SIZE-1);
     }
 
-    uint64_t size;
-    char name[64];
-};
+    // table name
+    char name[MAX_NAME_SIZE];
 
-struct ResourceMeta : public TableMeta
-{
-    static const int PATH_MAX = 4096;
+    // resource file path
+    char path[MAX_PATH_SIZE];
 
-    /**
-     * 数据头结构体大小
-     */
-    uint32_t header_size;
+    // capacity of table include table meta
+    uint64_t capacity;
 
-    /**
-     * 数据项结构体大小
-     */
-    uint32_t item_size;
-
-    /**
-     * 最大数据长度。通常在启动时读取配置决定。
-     */
-    uint32_t capacity;
-
-    /**
-     * 资源文件路径
-     */
-    char path[PATH_MAX];
-
-    /**
-     * 资源文件加载时间
-     */
+    // update time
     uint64_t utime;
-
-    /**
-     * 当前数据个数，在加载文件时获取。
-     */
-    uint32_t item_count;
 };
 
 struct DatabaseMeta
 {
     volatile uint32_t version;
-    volatile uint32_t table_meta_size;
     volatile uint32_t table_count;
     volatile int32_t read_index;
-    volatile uint64_t update_time;
     volatile uint32_t refcount[2];
 
     void increaseRef(int index)
@@ -83,11 +64,9 @@ struct ResourceConfig
 
 };
 
-class Database
+class Database : private boost::noncopyable
 {
 public:
-    Database(const Database &) = delete;
-    Database & operator=(const Database &) = delete;
 
     Database(const std::string & name, uint32_t version)
         : version_(version)

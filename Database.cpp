@@ -35,7 +35,6 @@ bool Database::create(uint64_t capacity)
     }
 
     meta().version = version_;
-    meta().table_meta_size = sizeof(TableMeta);
 
     //char * bytes = reinterpret_cast<char *>(&(meta().data));
     //if (initializeTables(bytes))

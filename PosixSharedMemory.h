@@ -43,8 +43,6 @@ public:
     int error() const;
 
 private:
-    // disable
-
     bool open(int oflag, mode_t mode, size_t capacity);
 
     std::string name_;

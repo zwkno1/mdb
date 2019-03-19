@@ -5,15 +5,14 @@ CONFIG -= qt
 
 SOURCES += \
         main.cpp \
-    ConcurrentDatabase.cpp \
     Database.cpp \
     main.cpp \
     PosixSharedMemory.cpp
 
 HEADERS += \
     CommSrc.h \
-    ConcurrentDatabase.h \
     Database.h \
     DataService.h \
     Resource.h \
-    PosixSharedMemory.h
+    PosixSharedMemory.h \
+    DatabaseReader.h
