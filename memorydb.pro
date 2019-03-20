@@ -4,15 +4,15 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 SOURCES += \
-        main.cpp \
-    Database.cpp \
     main.cpp \
-    PosixSharedMemory.cpp
+    database.cpp
 
 HEADERS += \
     CommSrc.h \
-    Database.h \
-    DataService.h \
-    Resource.h \
-    PosixSharedMemory.h \
-    DatabaseReader.h
+    sharedmemory.h \
+    database.h \
+    databasereader.h \
+    exampledatabase.h \
+    databaseconfig.h
+
+LIBS += -pthread -lrt

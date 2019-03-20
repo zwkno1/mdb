@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Database.h"
+#include "database.h"
 #include <boost/noncopyable.hpp>
 
 class DatabaseReader : private boost::noncopyable
@@ -8,19 +8,19 @@ class DatabaseReader : private boost::noncopyable
 public:
     DatabaseReader(Database * db)
         : db_(db)
-        , readIndex_(db_->meta().read_index)
+        , readIndex_(db_->meta()->read_index)
     {
-        db_->meta().increaseRef(readIndex_);
+        db_->meta()->increaseRef(readIndex_);
     }
 
-    DatabaseReader::~DatabaseReader()
+    ~DatabaseReader()
     {
-        db_->meta().decreaseRef(readIndex_);
+        db_->meta()->decreaseRef(readIndex_);
     }
 
 private:
     Database * db_;
 
-    int32_t readIndex_;
+    uint32_t readIndex_;
 };
 
