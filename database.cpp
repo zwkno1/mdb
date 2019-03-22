@@ -7,47 +7,65 @@ bool Database::open(const char * name)
     {
         return false;
     }
+
+    if(!loadTable())
+        return false;
     return true;
 }
 
-std::pair<bool, bool> Database::create(const DatabaseConfig & config)
+bool Database::create(const DatabaseConfig & config)
 {
     uint64_t size = config.getDatabaseSize();
     if (!shm_.create(config.name.c_str(), size))
     {
-        return std::make_pair(false, false);
+        return false;
     }
 
     assert(shm_.size() == size);
     if (shm_.size() != size)
     {
-        return std::make_pair(false, false);
+        return false;
     }
 
+    DatabaseMeta * d = meta();
     // try load table
-    if((meta()->version == DatabaseMeta::DATABASE_VERSION) && (meta()->table_count == config.tables.size()*2) && loadTable())
+    if((d->version == DatabaseMeta::DATABASE_VERSION) && (d->table_count == config.tables.size()*2) && loadTable())
     {
-        return std::make_pair(true, true);
+        return true;
     }
 
     // load table failed because of shared memory not initialized, build it
     tables_.clear();
     tables_.reserve(config.tables.size()*2);
-    // init db meta
-    new(shm_.address()) DatabaseMeta{ static_cast<uint32_t>(config.tables.size() * 2) };
     uint64_t offset = sizeof(DatabaseMeta);
     for(int i = 0; i < 2; ++i)
     {
-        for(auto & i : config.tables)
+        for(auto & j : config.tables)
         {
             // init table meta
-            TableMeta * t = new (reinterpret_cast<uint8_t *>(shm_.address()) + offset) TableMeta{ i.name.c_str(), i.filePath.c_str(), i.size };
+            TableMeta * t = new (reinterpret_cast<uint8_t *>(shm_.address()) + offset) TableMeta{ j.name.c_str(), j.path.c_str(), j.lockfile.c_str(), j.size };
+            // load table 0
+            if(i == 0)
+            {
+                try
+                {
+                    if(!t->load(false))
+                        return false;
+                }
+                catch (boost::system::error_code & ec)
+                {
+                    return false;
+                }
+            }
             tables_.push_back(t);
-            offset += i.size + sizeof(TableMeta);
+            offset += j.size + sizeof(TableMeta);
         }
     }
 
-    return std::make_pair(true, false);
+    // init db meta
+    new(shm_.address()) DatabaseMeta{ static_cast<uint32_t>(config.tables.size() * 2) };
+
+    return true;
 }
 
 bool Database::loadTable()
@@ -56,10 +74,12 @@ bool Database::loadTable()
     if(shm_.size() < sizeof(DatabaseMeta))
         return false;
 
-    tables_.clear();
-    tables_.reserve(meta()->table_count);
+    DatabaseMeta * d = meta();
     uint64_t offset = sizeof(DatabaseMeta);
-    for (uint32_t i = 0; i < meta()->table_count; ++i)
+
+    tables_.clear();
+    tables_.reserve(d->table_count);
+    for (uint32_t i = 0; i < d->table_count; ++i)
     {
         if(offset + sizeof(TableMeta) > shm_.size())
             return false;

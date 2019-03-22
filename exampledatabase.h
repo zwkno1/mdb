@@ -1,7 +1,7 @@
 #pragma once
 
 #include <database.h>
-#include <databaseconfig.h>
+#include <snapshot.h>
 
 class ExampleDatabase
 {
@@ -11,22 +11,27 @@ public:
     {
     }
 
+    bool open()
+    {
+        auto result = db_.open(config_.name.c_str());
+        if(!result)
+            return false;
+        return true;
+    }
+
     bool create()
     {
-        auto result = db_.create(config_);
-        if(!result.first)
+        if(!db_.create(config_))
             return false;
 
-        if(result.second)
-        {
-            // validate all tables
-        }
-        else
-        {
-            // initialize all tables
-        }
+        // validate table
 
         return true;
+    }
+
+    DatabaseMeta * meta()
+    {
+        return db_.meta();
     }
 
 private:
@@ -34,4 +39,17 @@ private:
     DatabaseConfig config_;
 
     Database db_;
+};
+
+class ExampleDatabaseReader
+{
+public:
+    ExampleDatabaseReader(ExampleDatabase * db)
+        : snapshot_(db->meta())
+    {
+
+    }
+private:
+    Snapshot snapshot_;
+
 };

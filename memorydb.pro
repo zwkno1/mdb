@@ -8,11 +8,10 @@ SOURCES += \
     database.cpp
 
 HEADERS += \
-    CommSrc.h \
+    comm.h \
     sharedmemory.h \
     database.h \
-    databasereader.h \
     exampledatabase.h \
-    databaseconfig.h
+    snapshot.h
 
-LIBS += -pthread -lrt
+LIBS += -pthread -lrt -lboost_filesystem

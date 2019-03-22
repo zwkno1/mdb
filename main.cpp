@@ -2,7 +2,10 @@
 #include <cstdlib> //std::system
 #include <sstream>
 #include <iostream>
+#include <exampledatabase.h>
+#include <thread>
 
+#if 0
 int main (int argc, char *argv[])
 {
    using namespace boost::interprocess;
@@ -57,4 +60,60 @@ int main (int argc, char *argv[])
       segment.deallocate(msg);
    }
    return 0;
+}
+#endif
+
+int main (int argc, char *argv[])
+{
+    DatabaseConfig config =
+    {
+        "exampledb",
+        {
+            {true, 102400, "table1", "/tmp/table1.src", "/tmp/table1.lock"},
+            {true, 204800, "table2", "/tmp/table2.src", "/tmp/table2.lock"},
+            {true, 409600, "table3", "/tmp/table3.src", "/tmp/table3.lock"},
+            {true, 102400, "table4", "/tmp/table4.src", "/tmp/table4.lock"},
+            {true, 102400, "table5", "/tmp/table5.src", "/tmp/table5.lock"},
+        }
+    };
+
+    SharedMemory::remove(config.name.c_str());
+
+    ExampleDatabase wdb{config};
+    if(!wdb.create())
+    {
+        std::cout << "create" << std::endl;
+        return -1;
+    }
+
+    ExampleDatabase rdb{config};
+    if(!rdb.open())
+    {
+        std::cout << "open" << std::endl;
+        return -1;
+    }
+
+    std::array<std::thread, 1> threads;
+
+    for(auto & i : threads)
+    {
+        i = std::thread([&rdb]()
+        {
+            for(int i = 0;i < 10000000; ++i)
+            {
+                ExampleDatabaseReader r(&rdb);
+            }
+            std::cout << "thread finish: " << std::this_thread::get_id() << std::endl;
+        });
+    }
+
+    for(int i = 0; i < 10; ++i)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::cout << "ref0:" << wdb.meta()->refcount[0] << ", ref1: " << wdb.meta()->refcount[1] << std::endl;
+    }
+
+    for(auto & i : threads)
+        i.join();
+    std::cout << "ref0:" << wdb.meta()->refcount[0] << ", ref1: " << wdb.meta()->refcount[1] << std::endl;
 }

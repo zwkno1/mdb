@@ -3,11 +3,13 @@
 #include <cstdint>
 #include <algorithm>
 
+#pragma pack(push, 1)
+
 //Val must be fixed size
 template<typename Val>
 struct Var 
 {
-    static_assert(std::is_pod<Val>, "Val of Var must be pod type");
+    static_assert(std::is_pod<Val>::value, "Val of Var must be pod type");
 
     uint32_t size_;
     Val data_[0];
@@ -85,7 +87,6 @@ struct VarVar
     uint32_t size_;
     Var<T> value_[0];
 };
-
 
 struct SrcHeader
 {
