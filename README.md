@@ -1,7 +1,7 @@
 # memorydb
 ## introduce
 
-A lockfree in-memory database use shared memory.
+A lockfree in-memory database.
 
 ## notice
 The database should update with a fixed time interval: fti.
