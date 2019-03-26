@@ -1,15 +1,16 @@
 #include "database.h"
 #include <iostream>
 
-bool Database::open(const char * name)
+bool Database::open(const DatabaseConfig & config)
 {
-    if (!shm_.open(name))
+    if (!shm_.open(config.name.c_str()))
     {
         return false;
     }
 
-    if(!loadTable())
+    if(!loadTable(config))
         return false;
+
     return true;
 }
 
@@ -29,7 +30,7 @@ bool Database::create(const DatabaseConfig & config)
 
     DatabaseMeta * d = meta();
     // try load table
-    if((d->version == DatabaseMeta::DATABASE_VERSION) && (d->table_count == config.tables.size()*2) && loadTable())
+    if((d->version == DatabaseMeta::DATABASE_VERSION) && (d->table_count == config.tables.size()*2) && loadTable(config))
     {
         return true;
     }
@@ -47,15 +48,8 @@ bool Database::create(const DatabaseConfig & config)
             // load table 0
             if(i == 0)
             {
-                try
-                {
-                    if(!t->load(false))
-                        return false;
-                }
-                catch (boost::system::error_code & ec)
-                {
+                if(!t->load(false))
                     return false;
-                }
             }
             tables_.push_back(t);
             offset += j.size + sizeof(TableMeta);
@@ -68,7 +62,7 @@ bool Database::create(const DatabaseConfig & config)
     return true;
 }
 
-bool Database::loadTable()
+bool Database::loadTable(const DatabaseConfig & config)
 {
     // valiadate size
     if(shm_.size() < sizeof(DatabaseMeta))
@@ -89,6 +83,22 @@ bool Database::loadTable()
             return false;
         tables_.push_back(t);
         offset += t->size + sizeof (TableMeta);
+    }
+
+    if(offset != shm_.size())
+        return false;
+
+    // check table
+    if(tables_.size() != config.tables.size() * 2)
+        return false;
+
+    for(size_t i = 0; i < config.tables.size(); ++i)
+    {
+        for(size_t j = 0; j < 2; ++j)
+        {
+            if(config.tables[i] != *tables_[i + j*config.tables.size()])
+                return false;
+        }
     }
 
     return true;

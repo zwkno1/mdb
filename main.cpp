@@ -69,11 +69,11 @@ int main (int argc, char *argv[])
     {
         "exampledb",
         {
-            {true, 102400, "table1", "/tmp/table1.src", "/tmp/table1.lock"},
-            {true, 204800, "table2", "/tmp/table2.src", "/tmp/table2.lock"},
-            {true, 409600, "table3", "/tmp/table3.src", "/tmp/table3.lock"},
-            {true, 102400, "table4", "/tmp/table4.src", "/tmp/table4.lock"},
-            {true, 102400, "table5", "/tmp/table5.src", "/tmp/table5.lock"},
+            { 102400, "table1", "/tmp/table1.src", "/tmp/table1.lock"},
+            { 204800, "table2", "/tmp/table2.src", "/tmp/table2.lock"},
+            { 409600, "table3", "/tmp/table3.src", "/tmp/table3.lock"},
+            { 102400, "table4", "/tmp/table4.src", "/tmp/table4.lock"},
+            { 102400, "table5", "/tmp/table5.src", "/tmp/table5.lock"},
         }
     };
 
@@ -93,27 +93,35 @@ int main (int argc, char *argv[])
         return -1;
     }
 
-    std::array<std::thread, 1> threads;
+    std::array<std::thread, 100> threads;
 
+    std::atomic<int> count;
     for(auto & i : threads)
     {
-        i = std::thread([&rdb]()
+        i = std::thread([&count, &rdb]()
         {
+            ++count;
             for(int i = 0;i < 10000000; ++i)
             {
                 ExampleDatabaseReader r(&rdb);
             }
-            std::cout << "thread finish: " << std::this_thread::get_id() << std::endl;
+            --count;
         });
     }
 
-    for(int i = 0; i < 10; ++i)
+    while(count != 0)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        std::cout << "ref0:" << wdb.meta()->refcount[0] << ", ref1: " << wdb.meta()->refcount[1] << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::cout << "ref0:" << wdb.db()->meta()->refcount[0] << ", ref1: " << wdb.db()->meta()->refcount[1] << std::endl;
     }
 
+    std::cout << "ref0:" << wdb.db()->meta()->refcount[0] << ", ref1: " << wdb.db()->meta()->refcount[1] << std::endl;
     for(auto & i : threads)
         i.join();
-    std::cout << "ref0:" << wdb.meta()->refcount[0] << ", ref1: " << wdb.meta()->refcount[1] << std::endl;
+    ExampleDatabaseReader reader(&rdb);
+
+    for(size_t i = 0; i < config.tables.size(); ++i)
+    {
+        std::cout << reader.query(i) << std::endl;
+    }
 }

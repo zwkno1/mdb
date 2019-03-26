@@ -13,7 +13,7 @@ public:
 
     bool open()
     {
-        auto result = db_.open(config_.name.c_str());
+        auto result = db_.open(config_);
         if(!result)
             return false;
         return true;
@@ -24,14 +24,15 @@ public:
         if(!db_.create(config_))
             return false;
 
+
         // validate table
 
         return true;
     }
 
-    DatabaseMeta * meta()
+    Database * db()
     {
-        return db_.meta();
+        return &db_;
     }
 
 private:
@@ -45,10 +46,15 @@ class ExampleDatabaseReader
 {
 public:
     ExampleDatabaseReader(ExampleDatabase * db)
-        : snapshot_(db->meta())
+        : snapshot_(db->db())
     {
-
     }
+
+    const char * query(int i)
+    {
+        return reinterpret_cast<const char *>(snapshot_.table(i)->data);
+    }
+
 private:
     Snapshot snapshot_;
 

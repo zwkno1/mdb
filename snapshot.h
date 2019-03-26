@@ -6,20 +6,30 @@
 class Snapshot : private boost::noncopyable
 {
 public:
-    Snapshot(DatabaseMeta * db)
+    Snapshot(Database * db)
         : db_(db)
-        , readIndex_(db_->read_index)
+        , tableCount_(db->meta()->table_count/2)
+        , readIndex_(db->meta()->read_index)
     {
-        db_->increaseRef(readIndex_);
+        db_->meta()->increaseRef(readIndex_);
     }
 
     ~Snapshot()
     {
-        db_->decreaseRef(readIndex_);
+        db_->meta()->decreaseRef(readIndex_);
+    }
+
+    TableMeta * table(size_t index)
+    {
+        if(index > tableCount_)
+            return nullptr;
+        return db_->table(readIndex_*tableCount_ + index);
     }
 
 private:
-    DatabaseMeta * db_;
+    Database * db_;
+
+    uint32_t tableCount_;
 
     uint32_t readIndex_;
 };

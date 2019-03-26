@@ -14,4 +14,4 @@ HEADERS += \
     exampledatabase.h \
     snapshot.h
 
-LIBS += -pthread -lrt -lboost_filesystem
+LIBS += -pthread -lrt -lboost_filesystem -lboost_iostreams

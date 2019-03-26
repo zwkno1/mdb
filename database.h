@@ -11,7 +11,9 @@
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/interprocess/file_mapping.hpp>
+#include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/interprocess/exceptions.hpp>
 #include <sharedmemory.h>
 
 struct TableMeta
@@ -36,44 +38,54 @@ struct TableMeta
 
     bool load(bool isTry = true)
     {
-        // check up to date
-        boost::system::error_code ec;
-        time_t lastWriteTime = boost::filesystem::last_write_time(path, ec);
-        if(ec || lastWriteTime <= utime)
+        try
+        {
+            // check up to date
+            time_t lastWriteTime = boost::filesystem::last_write_time(path);
+            if(lastWriteTime <= utime)
+            {
+                return false;
+            }
+
+            // lock
+            boost::interprocess::file_lock flock{lockfile};
+            boost::interprocess::scoped_lock<boost::interprocess::file_lock> lock{flock, boost::interprocess::defer_lock};
+
+            if(isTry)
+            {
+                lock.try_lock();
+            }
+            else
+            {
+                lock.lock();
+            }
+
+            if(!lock.owns())
+            {
+                return false;
+            }
+
+            // check file size
+            auto fileSize = boost::filesystem::file_size(path);
+            if(fileSize > size || fileSize == 0)
+            {
+                return false;
+            }
+
+            // load data
+            boost::interprocess::file_mapping file(path, boost::interprocess::read_only);
+            boost::interprocess::mapped_region region(file, boost::interprocess::read_only);
+            memcpy(&data[0], region.get_address(), region.get_size());
+            utime = lastWriteTime;
+        }
+        catch(boost::interprocess::interprocess_exception & e)
         {
             return false;
         }
-
-        // lock
-        boost::interprocess::file_lock flock{lockfile};
-        boost::interprocess::scoped_lock<boost::interprocess::file_lock> lock{flock, boost::interprocess::defer_lock};
-
-        if(isTry)
-        {
-            lock.try_lock();
-        }
-        else
-        {
-            lock.lock();
-        }
-
-        if(!lock.owns())
+        catch(boost::system::error_code & e)
         {
             return false;
         }
-
-        // load date
-        boost::interprocess::file_mapping file(path, boost::interprocess::read_only);
-        boost::interprocess::mapped_region region(file, boost::interprocess::read_write);
-
-        // overflow
-        if(region.get_size() > size)
-        {
-            return false;
-        }
-
-        memcpy(&data[0], region.get_address(), region.get_size());
-        utime = lastWriteTime;
 
         return true;
     }
@@ -129,11 +141,28 @@ struct DatabaseMeta
 
 struct TableConfig
 {
-    bool enable;
     uint64_t size;
     std::string name;
     std::string path;
     std::string lockfile;
+
+    bool operator==(const TableMeta & tm) const
+    {
+        if(size != tm.size)
+            return false;
+        if(name != tm.name)
+            return false;
+        if(path != tm.path)
+            return false;
+        if(lockfile != tm.lockfile)
+            return false;
+        return true;
+    }
+
+    bool operator !=(const TableMeta & tm) const
+    {
+        return ! operator==(tm);
+    }
 };
 
 struct DatabaseConfig
@@ -160,14 +189,9 @@ public:
     {
     }
 
-    bool open(const char * name);
+    bool open(const DatabaseConfig & config);
 
     bool create(const DatabaseConfig & config);
-
-    const char * name() const
-    {
-        return shm_.name();
-    }
 
     const TableMeta * table(size_t index) const
     {
@@ -184,20 +208,8 @@ public:
         return reinterpret_cast<DatabaseMeta *>(shm_.address());
     }
 
-    void * address()
-    {
-        return shm_.address();
-    }
-
-    uint64_t size() const
-    {
-        return shm_.size();
-    }
-
-    bool loadTable();
-
 private:
-    std::string name_;
+    bool loadTable(const DatabaseConfig & config);
 
     SharedMemory shm_;
 
