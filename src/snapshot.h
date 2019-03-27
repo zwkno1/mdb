@@ -9,21 +9,21 @@ public:
     Snapshot(Database * db)
         : db_(db)
         , tableCount_(db->meta()->table_count/2)
-        , readIndex_(db->meta()->read_index)
+        , active_(db->meta()->active)
     {
-        db_->meta()->increaseRef(readIndex_);
+        db_->meta()->increaseRef(active_ & 1);
     }
 
     ~Snapshot()
     {
-        db_->meta()->decreaseRef(readIndex_);
+        db_->meta()->decreaseRef(active_ & 1);
     }
 
     TableMeta * table(size_t index)
     {
         if(index > tableCount_)
             return nullptr;
-        return db_->table(readIndex_*tableCount_ + index);
+        return db_->table((active_ & 1) * tableCount_ + index);
     }
 
 private:
@@ -31,6 +31,6 @@ private:
 
     uint32_t tableCount_;
 
-    uint32_t readIndex_;
+    uint64_t active_;
 };
 

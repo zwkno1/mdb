@@ -141,15 +141,15 @@ inline uint32_t FillVar(Var<T> * out, const Containter & in)
 }
 
 template<typename T>
-uint32_t FillVar(Var<T> * out, const std::string & in)
+uint32_t FillVar(Var<T> * dst, const std::string & src)
 {
-    return FillVar(out, in.begin(), in.end() + 1);
+    return FillVar(dst, src.begin(), src.end() + 1);
 }
 
 template<typename T>
-uint32_t FillVar(Var<T> * out, const char * in)
+uint32_t FillVar(Var<T> * dst, const char * src)
 {
-    return FillVar(out, in, in + strlen(in) + 1);
+    return FillVar(dst, src, src + strlen(src) + 1);
 }
 
 template<typename T>

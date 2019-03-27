@@ -11,10 +11,10 @@
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/interprocess/file_mapping.hpp>
-#include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/interprocess/exceptions.hpp>
 #include <sharedmemory.h>
+#include <chrono>
 
 struct TableMeta
 {
@@ -82,10 +82,10 @@ struct TableMeta
         {
             return false;
         }
-        catch(boost::system::error_code & e)
-        {
-            return false;
-        }
+		catch(boost::filesystem::filesystem_error & e)
+		{
+			return false;
+		}
 
         return true;
     }
@@ -118,14 +118,19 @@ struct DatabaseMeta
     DatabaseMeta(uint32_t tc)
         : version{DATABASE_VERSION}
         , table_count{tc}
-        , read_index{0}
+        , active{0}
         , refcount{{0}, {0}}
     {
     }
 
+	void trigge()
+	{
+		active += 1;
+	}
+
     std::atomic<uint32_t> version;
     std::atomic<uint32_t> table_count;
-    std::atomic<uint32_t> read_index;
+    std::atomic<uint64_t> active;
     std::atomic<uint32_t> refcount[2];
 
     void increaseRef(uint32_t index)

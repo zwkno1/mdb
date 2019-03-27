@@ -30,6 +30,11 @@ public:
         return true;
     }
 
+    void run()
+    {
+
+    }
+
     Database * db()
     {
         return &db_;
