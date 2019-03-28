@@ -7,13 +7,22 @@ find_package(Boost REQUIRED COMPONENTS filesystem)
 
 include_directories(../src ./ ${Boost_INCLUDE_DIRS})
 
-FILE(GLOB_RECURSE LibFiles "../include/*.h" "./*.h")
-add_custom_target(headers SOURCES ${LibFiles})
-
 add_executable(exampledb
-	exampledatabase.cpp
+        exampledb.cpp
 	../src/database.cpp
-	)
+        )
+
+add_executable(exampledbreader
+        exampledbreader.cpp
+        ../src/database.cpp
+        )
+
+add_executable(exampledbupdater
+        exampledbupdater.cpp
+        ../src/database.cpp
+        )
 
 target_link_libraries(exampledb ${Boost_LIBRARIES} rt ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(exampledbreader ${Boost_LIBRARIES} rt ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(exampledbupdater ${Boost_LIBRARIES} rt ${CMAKE_THREAD_LIBS_INIT})
 

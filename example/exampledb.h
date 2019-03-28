@@ -13,26 +13,12 @@ public:
 
     bool open()
     {
-        auto result = db_.open(config_);
-        if(!result)
-            return false;
-        return true;
+        return db_.open(config_);
     }
 
     bool create()
     {
-        if(!db_.create(config_))
-            return false;
-
-
-        // validate table
-
-        return true;
-    }
-
-    void run()
-    {
-
+        return db_.create(config_);
     }
 
     Database * db()
@@ -60,6 +46,10 @@ public:
         return reinterpret_cast<const char *>(snapshot_.table(i)->data);
     }
 
+    uint64_t active()
+    {
+        return snapshot_.active();
+    }
 private:
     Snapshot snapshot_;
 

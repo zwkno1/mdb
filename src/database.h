@@ -44,6 +44,7 @@ struct TableMeta
             time_t lastWriteTime = boost::filesystem::last_write_time(path);
             if(lastWriteTime <= utime)
             {
+                std::cout << "updatetime: " << utime << ",lastWriteTime: " << lastWriteTime << std::endl;
                 return false;
             }
 
@@ -62,6 +63,7 @@ struct TableMeta
 
             if(!lock.owns())
             {
+                std::cout << "lock " << lockfile << " failed" << std::endl;
                 return false;
             }
 
@@ -69,6 +71,7 @@ struct TableMeta
             auto fileSize = boost::filesystem::file_size(path);
             if(fileSize > size || fileSize == 0)
             {
+                std::cout << "file " << path << " size: " << fileSize << std::endl;
                 return false;
             }
 
@@ -80,12 +83,14 @@ struct TableMeta
         }
         catch(boost::interprocess::interprocess_exception & e)
         {
+            std::cout << e.what() << std::endl;
             return false;
         }
-		catch(boost::filesystem::filesystem_error & e)
-		{
-			return false;
-		}
+        catch(boost::filesystem::filesystem_error & e)
+        {
+            std::cout << e.what() << std::endl;
+            return false;
+        }
 
         return true;
     }
@@ -123,10 +128,10 @@ struct DatabaseMeta
     {
     }
 
-	void trigge()
-	{
-		active += 1;
-	}
+    void trigge()
+    {
+        active += 1;
+    }
 
     std::atomic<uint32_t> version;
     std::atomic<uint32_t> table_count;
@@ -197,6 +202,8 @@ public:
     bool open(const DatabaseConfig & config);
 
     bool create(const DatabaseConfig & config);
+
+    size_t update();
 
     const TableMeta * table(size_t index) const
     {

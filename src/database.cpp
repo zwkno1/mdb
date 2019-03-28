@@ -103,3 +103,16 @@ bool Database::loadTable(const DatabaseConfig & config)
 
     return true;
 }
+
+size_t Database::update()
+{
+    size_t count = 0;
+    size_t begin = (1ull - meta()->active & 1ull)*(tables_.size()/2);
+    for(size_t i = 0; i < tables_.size()/2; ++i)
+    {
+        if(tables_[begin+i]->load())
+            ++count;
+    }
+    meta()->trigge();
+    return count;
+}

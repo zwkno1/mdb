@@ -23,9 +23,13 @@ public:
     {
         if(index > tableCount_)
             return nullptr;
-        return db_->table((active_ & 1) * tableCount_ + index);
+        return db_->table((active_ & 1ull) * tableCount_ + index);
     }
 
+    uint64_t active()
+    {
+        return active_;
+    }
 private:
     Database * db_;
 
